@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../models/siswa.dart';
+import 'package:datasiswa/models/siswa.dart';
+import 'package:datasiswa/services/alamat_services.dart';
 
 class FormPage extends StatefulWidget {
   final Siswa? siswa;
@@ -13,7 +14,9 @@ class FormPage extends StatefulWidget {
 
 class _FormPageState extends State<FormPage> {
   final _formKey = GlobalKey<FormState>();
+  final AlamatService alamatService = AlamatService();
 
+  // Controllers
   late TextEditingController nisnController;
   late TextEditingController namaController;
   late TextEditingController ttlController;
@@ -34,13 +37,14 @@ class _FormPageState extends State<FormPage> {
 
   String? selectedJK;
   String? selectedAgama;
+  List<String> dusunSuggestion = [];
 
   @override
   void initState() {
     super.initState();
+
     nisnController = TextEditingController(text: widget.siswa?.nisn ?? "");
-    namaController =
-        TextEditingController(text: widget.siswa?.namaLengkap ?? "");
+    namaController = TextEditingController(text: widget.siswa?.namaLengkap ?? "");
     selectedJK = widget.siswa?.jenisKelamin;
     selectedAgama = widget.siswa?.agama;
     ttlController = TextEditingController(text: widget.siswa?.ttl ?? "");
@@ -50,19 +54,29 @@ class _FormPageState extends State<FormPage> {
     rtrwController = TextEditingController(text: widget.siswa?.rtrw ?? "");
     dusunController = TextEditingController(text: widget.siswa?.dusun ?? "");
     desaController = TextEditingController(text: widget.siswa?.desa ?? "");
-    kecamatanController =
-        TextEditingController(text: widget.siswa?.kecamatan ?? "");
-    kabupatenController =
-        TextEditingController(text: widget.siswa?.kabupaten ?? "");
-    provinsiController =
-        TextEditingController(text: widget.siswa?.provinsi ?? "");
-    kodeposController =
-        TextEditingController(text: widget.siswa?.kodepos ?? "");
+    kecamatanController = TextEditingController(text: widget.siswa?.kecamatan ?? "");
+    kabupatenController = TextEditingController(text: widget.siswa?.kabupaten ?? "");
+    provinsiController = TextEditingController(text: widget.siswa?.provinsi ?? "");
+    kodeposController = TextEditingController(text: widget.siswa?.kodepos ?? "");
     ayahController = TextEditingController(text: widget.siswa?.ayah ?? "");
     ibuController = TextEditingController(text: widget.siswa?.ibu ?? "");
     waliController = TextEditingController(text: widget.siswa?.wali ?? "");
-    alamatWaliController =
-        TextEditingController(text: widget.siswa?.alamatWali ?? "");
+    alamatWaliController = TextEditingController(text: widget.siswa?.alamatWali ?? "");
+
+    _loadDusun(); // Load dusun untuk autocomplete
+  }
+
+  void _loadDusun() async {
+    try {
+      final list = await alamatService.getDusunList();
+      setState(() {
+        dusunSuggestion = list;
+      });
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString())),
+      );
+    }
   }
 
   @override
@@ -133,6 +147,27 @@ class _FormPageState extends State<FormPage> {
         style: GoogleFonts.poppins(),
         validator: (value) =>
             value == null || value.isEmpty ? "Wajib diisi" : null,
+      ),
+    );
+  }
+
+  Widget _buildReadonlyField(String label, TextEditingController controller,
+      {IconData? icon}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: TextFormField(
+        controller: controller,
+        readOnly: true,
+        decoration: InputDecoration(
+          labelText: label,
+          prefixIcon: icon != null ? Icon(icon, color: Colors.grey) : null,
+          filled: true,
+          fillColor: Colors.grey[200],
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+        style: GoogleFonts.poppins(color: Colors.black54),
       ),
     );
   }
@@ -210,6 +245,59 @@ class _FormPageState extends State<FormPage> {
     );
   }
 
+  Widget _buildDusunField() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Autocomplete<String>(
+        optionsBuilder: (TextEditingValue textEditingValue) {
+          if (textEditingValue.text.isEmpty) {
+            return const Iterable<String>.empty();
+          }
+          return dusunSuggestion.where((dusun) => dusun
+              .toLowerCase()
+              .contains(textEditingValue.text.toLowerCase()));
+        },
+        fieldViewBuilder: (context, controller, focusNode, onEditingComplete) {
+          controller.text = dusunController.text;
+          return TextFormField(
+            controller: controller,
+            focusNode: focusNode,
+            decoration: InputDecoration(
+              labelText: "Dusun",
+              prefixIcon: const Icon(Icons.house, color: Colors.blue),
+              filled: true,
+              fillColor: Colors.white,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            validator: (value) =>
+                value == null || value.isEmpty ? "Wajib diisi" : null,
+            onEditingComplete: onEditingComplete,
+          );
+        },
+        onSelected: (selection) async {
+          dusunController.text = selection;
+          try {
+            final alamatData = await alamatService.getAlamatByDusun(selection);
+            if (alamatData != null) {
+              setState(() {
+                desaController.text = alamatData['desa']!;
+                kecamatanController.text = alamatData['kecamatan']!;
+                kabupatenController.text = alamatData['kabupaten']!;
+                kodeposController.text = alamatData['kodepos']!;
+              });
+            }
+          } catch (e) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(e.toString())),
+            );
+          }
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isEdit = widget.siswa != null;
@@ -229,8 +317,7 @@ class _FormPageState extends State<FormPage> {
         padding: const EdgeInsets.all(16),
         child: Card(
           elevation: 4,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           child: Padding(
             padding: const EdgeInsets.all(20),
             child: Form(
@@ -238,36 +325,24 @@ class _FormPageState extends State<FormPage> {
               child: Column(
                 children: [
                   _buildTextField("NISN", nisnController, icon: Icons.badge),
-                  _buildTextField("Nama Lengkap", namaController,
-                      icon: Icons.person),
+                  _buildTextField("Nama Lengkap", namaController, icon: Icons.person),
                   _buildDropdownJK(),
                   _buildDropdownAgama(),
-                  _buildTextField("Tempat, Tanggal Lahir", ttlController,
-                      icon: Icons.cake),
-                  _buildTextField("No Telepon/HP", telpController,
-                      icon: Icons.phone),
-                  _buildTextField("NIK", nikController,
-                      icon: Icons.perm_identity),
-                  _buildTextField("Jalan", jalanController,
-                      icon: Icons.home_filled),
+                  _buildTextField("Tempat, Tanggal Lahir", ttlController, icon: Icons.cake),
+                  _buildTextField("No Telepon/HP", telpController, icon: Icons.phone),
+                  _buildTextField("NIK", nikController, icon: Icons.perm_identity),
+                  _buildTextField("Jalan", jalanController, icon: Icons.home_filled),
                   _buildTextField("RT/RW", rtrwController, icon: Icons.map),
-                  _buildTextField("Dusun", dusunController, icon: Icons.house),
-                  _buildTextField("Desa", desaController,
-                      icon: Icons.location_city),
-                  _buildTextField("Kecamatan", kecamatanController,
-                      icon: Icons.apartment),
-                  _buildTextField("Kabupaten", kabupatenController,
-                      icon: Icons.location_on),
-                  _buildTextField("Provinsi", provinsiController,
-                      icon: Icons.flag),
-                  _buildTextField("Kode Pos", kodeposController,
-                      icon: Icons.markunread_mailbox),
+                  _buildDusunField(),
+                  _buildReadonlyField("Desa", desaController, icon: Icons.location_city),
+                  _buildReadonlyField("Kecamatan", kecamatanController, icon: Icons.apartment),
+                  _buildReadonlyField("Kabupaten", kabupatenController, icon: Icons.location_on),
+                  _buildTextField("Provinsi", provinsiController, icon: Icons.flag),
+                  _buildReadonlyField("Kode Pos", kodeposController, icon: Icons.markunread_mailbox),
                   _buildTextField("Nama Ayah", ayahController, icon: Icons.male),
                   _buildTextField("Nama Ibu", ibuController, icon: Icons.female),
-                  _buildTextField("Nama Wali", waliController,
-                      icon: Icons.people),
-                  _buildTextField("Alamat Orang Tua/Wali", alamatWaliController,
-                      icon: Icons.location_pin),
+                  _buildTextField("Nama Wali", waliController, icon: Icons.people),
+                  _buildTextField("Alamat Orang Tua/Wali", alamatWaliController, icon: Icons.location_pin),
                   const SizedBox(height: 24),
                   SizedBox(
                     width: double.infinity,
@@ -285,11 +360,10 @@ class _FormPageState extends State<FormPage> {
                       icon: const Icon(Icons.save),
                       label: Text(
                         isEdit ? "Update" : "Simpan",
-                        style: GoogleFonts.poppins(
-                            fontSize: 16, fontWeight: FontWeight.w600),
+                        style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600),
                       ),
                     ),
-                  )
+                  ),
                 ],
               ),
             ),

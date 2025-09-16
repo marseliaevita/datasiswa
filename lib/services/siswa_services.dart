@@ -1,4 +1,4 @@
-import '../models/siswa.dart';
+import 'package:datasiswa/models/siswa.dart';
 
 class SiswaService {
   final List<Siswa> _siswaList = [];
