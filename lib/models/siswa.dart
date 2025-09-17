@@ -1,4 +1,5 @@
 class Siswa {
+  String id;          
   String nisn;
   String namaLengkap;
   String jenisKelamin;
@@ -20,6 +21,7 @@ class Siswa {
   String alamatWali;
 
   Siswa({
+    this.id = '',       
     required this.nisn,
     required this.namaLengkap,
     required this.jenisKelamin,

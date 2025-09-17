@@ -1,19 +1,166 @@
 import 'package:datasiswa/models/siswa.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class SiswaService {
-  final List<Siswa> _siswaList = [];
+  final supabase = Supabase.instance.client;
 
-  List<Siswa> getAll() => _siswaList;
+  /// Get semua siswa beserta data orang tua & wali
+  Future<List<Siswa>> getAll() async {
+    try {
+      final response = await supabase
+          .from('siswa')
+          .select('*, orang_tua(*), wali(*), alamat(*)');
+      final dataList = response as List<dynamic>;
 
-  void add(Siswa siswa) {
-    _siswaList.add(siswa);
+      return dataList.map((data) {
+        final orangTuaList = data['orang_tua'] as List<dynamic>;
+        final waliList = data['wali'] as List<dynamic>;
+        final alamatData = data['alamat'];
+
+        final orangTua = orangTuaList.isNotEmpty ? orangTuaList[0] : null;
+        final wali = waliList.isNotEmpty ? waliList[0] : null;
+
+        return Siswa(
+          id: data['id'].toString(),
+          nisn: data['nisn'] ?? '',
+          namaLengkap: data['nama_lengkap'] ?? '',
+          jenisKelamin: data['jenis_kelamin'] ?? '',
+          agama: data['agama'] ?? '',
+          ttl: data['ttl'] ?? '',
+          telp: data['telp'] ?? '',
+          nik: data['nik'] ?? '',
+          jalan: data['jalan'] ?? '',
+          rtrw: data['rtrw'] ?? '',
+          dusun: alamatData != null ? alamatData['dusun'] ?? '' : '',
+          desa: alamatData != null ? alamatData['desa'] ?? '' : '',
+          kecamatan: alamatData != null ? alamatData['kecamatan'] ?? '' : '',
+          kabupaten: alamatData != null ? alamatData['kabupaten'] ?? '' : '',
+          provinsi: data['provinsi'] ?? '',
+          kodepos: alamatData != null ? alamatData['kodepos'] ?? '' : '',
+          ayah: orangTua != null ? orangTua['nama_ayah'] ?? '' : '',
+          ibu: orangTua != null ? orangTua['nama_ibu'] ?? '' : '',
+          wali: wali != null ? wali['nama_wali'] ?? '' : '',
+          alamatWali: wali != null ? wali['alamat_wali'] ?? '' : '',
+        );
+      }).toList();
+    } catch (e) {
+      throw Exception("Gagal ambil data: $e");
+    }
   }
 
-  void update(int index, Siswa siswa) {
-    _siswaList[index] = siswa;
+  /// Tambah siswa baru
+  Future<void> add(Siswa siswa) async {
+    try {
+      // Ambil alamat_id dari tabel alamat
+      final alamat = await supabase
+          .from('alamat')
+          .select('id')
+          .eq('dusun', siswa.dusun)
+          .limit(1)
+          .single();
+
+      if (alamat == null) throw Exception("Alamat tidak ditemukan");
+      final alamatId = alamat['id'];
+
+      // Insert siswa
+      final siswaData = await supabase.from('siswa').insert({
+        'nisn': siswa.nisn,
+        'nama_lengkap': siswa.namaLengkap,
+        'jenis_kelamin': siswa.jenisKelamin,
+        'agama': siswa.agama,
+        'ttl': siswa.ttl,
+        'telp': siswa.telp,
+        'nik': siswa.nik,
+        'jalan': siswa.jalan,
+        'rtrw': siswa.rtrw,
+        'provinsi': siswa.provinsi,
+        'alamat_id': alamatId,
+      }).select().single();
+
+      final siswaId = siswaData['id'];
+
+      // Insert orang tua
+      await supabase.from('orang_tua').insert({
+        'siswa_id': siswaId,
+        'nama_ayah': siswa.ayah,
+        'nama_ibu': siswa.ibu,
+        'alamat_ortu': siswa.alamatWali,
+      });
+
+      // Insert wali (opsional)
+      if (siswa.wali.isNotEmpty) {
+        await supabase.from('wali').insert({
+          'siswa_id': siswaId,
+          'nama_wali': siswa.wali,
+          'alamat_wali': siswa.alamatWali,
+        });
+      }
+    } catch (e) {
+      throw Exception("Gagal tambah data: $e");
+    }
   }
 
-  void delete(int index) {
-    _siswaList.removeAt(index);
+  /// Update data siswa
+  Future<void> update(String siswaId, Siswa siswa) async {
+    try {
+      // Ambil alamat_id
+      final alamat = await supabase
+          .from('alamat')
+          .select('id')
+          .eq('dusun', siswa.dusun)
+          .limit(1)
+          .single();
+
+      if (alamat == null) throw Exception("Alamat tidak ditemukan");
+      final alamatId = alamat['id'];
+
+      // Update siswa
+      await supabase.from('siswa').update({
+        'nisn': siswa.nisn,
+        'nama_lengkap': siswa.namaLengkap,
+        'jenis_kelamin': siswa.jenisKelamin,
+        'agama': siswa.agama,
+        'ttl': siswa.ttl,
+        'telp': siswa.telp,
+        'nik': siswa.nik,
+        'jalan': siswa.jalan,
+        'rtrw': siswa.rtrw,
+        'provinsi': siswa.provinsi,
+        'alamat_id': alamatId,
+      }).eq('id', siswaId);
+
+      // Update/insert orang_tua
+      await supabase.from('orang_tua').upsert({
+        'siswa_id': siswaId,
+        'nama_ayah': siswa.ayah,
+        'nama_ibu': siswa.ibu,
+        'alamat_ortu': siswa.alamatWali,
+      }, onConflict: 'siswa_id');
+
+      // Update/insert wali
+      if (siswa.wali.isNotEmpty) {
+        await supabase.from('wali').upsert({
+          'siswa_id': siswaId,
+          'nama_wali': siswa.wali,
+          'alamat_wali': siswa.alamatWali,
+        }, onConflict: 'siswa_id');
+      } else {
+        // Hapus data wali jika dikosongkan
+        await supabase.from('wali').delete().eq('siswa_id', siswaId);
+      }
+    } catch (e) {
+      throw Exception("Gagal update data: $e");
+    }
+  }
+
+  /// Hapus siswa beserta orang_tua & wali
+  Future<void> deleteById(String siswaId) async {
+    try {
+      await supabase.from('wali').delete().eq('siswa_id', siswaId);
+      await supabase.from('orang_tua').delete().eq('siswa_id', siswaId);
+      await supabase.from('siswa').delete().eq('id', siswaId);
+    } catch (e) {
+      throw Exception("Gagal hapus data: $e");
+    }
   }
 }

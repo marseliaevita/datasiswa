@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:datasiswa/models/siswa.dart';
 import 'package:datasiswa/services/alamat_services.dart';
+import 'package:datasiswa/services/siswa_services.dart';
 
 class FormPage extends StatefulWidget {
   final Siswa? siswa;
+  final String? siswaId; // untuk update Supabase
 
-  const FormPage({super.key, this.siswa});
+  const FormPage({super.key, this.siswa, this.siswaId});
 
   @override
   State<FormPage> createState() => _FormPageState();
@@ -15,6 +17,7 @@ class FormPage extends StatefulWidget {
 class _FormPageState extends State<FormPage> {
   final _formKey = GlobalKey<FormState>();
   final AlamatService alamatService = AlamatService();
+  final SiswaService siswaService = SiswaService();
 
   // Controllers
   late TextEditingController nisnController;
@@ -37,12 +40,15 @@ class _FormPageState extends State<FormPage> {
 
   String? selectedJK;
   String? selectedAgama;
+
   List<String> dusunSuggestion = [];
+  List<String> provinsiSuggestion = [];
 
   @override
   void initState() {
     super.initState();
 
+    // Inisialisasi controller dengan data lama jika edit
     nisnController = TextEditingController(text: widget.siswa?.nisn ?? "");
     namaController = TextEditingController(text: widget.siswa?.namaLengkap ?? "");
     selectedJK = widget.siswa?.jenisKelamin;
@@ -64,6 +70,7 @@ class _FormPageState extends State<FormPage> {
     alamatWaliController = TextEditingController(text: widget.siswa?.alamatWali ?? "");
 
     _loadDusun(); // Load dusun untuk autocomplete
+    _loadProvinsi(); // Load provinsi untuk autocomplete
   }
 
   void _loadDusun() async {
@@ -71,6 +78,19 @@ class _FormPageState extends State<FormPage> {
       final list = await alamatService.getDusunList();
       setState(() {
         dusunSuggestion = list;
+      });
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString())),
+      );
+    }
+  }
+
+  void _loadProvinsi() async {
+    try {
+      final list = await alamatService.getProvinsiList();
+      setState(() {
+        provinsiSuggestion = list;
       });
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -101,35 +121,86 @@ class _FormPageState extends State<FormPage> {
     super.dispose();
   }
 
-  void _saveData() {
-    if (_formKey.currentState!.validate()) {
-      final siswa = Siswa(
-        nisn: nisnController.text,
-        namaLengkap: namaController.text,
-        jenisKelamin: selectedJK ?? "",
-        agama: selectedAgama ?? "",
-        ttl: ttlController.text,
-        telp: telpController.text,
-        nik: nikController.text,
-        jalan: jalanController.text,
-        rtrw: rtrwController.text,
-        dusun: dusunController.text,
-        desa: desaController.text,
-        kecamatan: kecamatanController.text,
-        kabupaten: kabupatenController.text,
-        provinsi: provinsiController.text,
-        kodepos: kodeposController.text,
-        ayah: ayahController.text,
-        ibu: ibuController.text,
-        wali: waliController.text,
-        alamatWali: alamatWaliController.text,
-      );
+  //=================== VALIDATOR ===================
+  String? validateRequired(String? value) {
+    if (value == null || value.isEmpty) return "Wajib diisi";
+    return null;
+  }
+
+  String? validateNISN(String? value) {
+    if (value == null || value.isEmpty) return "Wajib diisi";
+    if (value.length != 10) return "NISN harus 10 karakter";
+    return null;
+  }
+
+  String? validateTelp(String? value) {
+    if (value == null || value.isEmpty) return "Wajib diisi";
+    if (value.length < 12 || value.length > 15) return "Nomor HP harus 12-15 digit";
+    if (!RegExp(r'^[0-9]+$').hasMatch(value)) return "Hanya boleh angka";
+    return null;
+  }
+
+  String? validateNIK(String? value) {
+    if (value == null || value.isEmpty) return "Wajib diisi";
+    if (value.length != 16) return "NIK harus 16 karakter";
+    return null;
+  }
+
+  String? validateRTRW(String? value) {
+    if (value == null || value.isEmpty) return "Wajib diisi";
+    if (!RegExp(r'^[0-9]+$').hasMatch(value)) return "Hanya boleh angka";
+    return null;
+  }
+
+  //=================== SAVE DATA ===================
+  Future<void> _saveData() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    final siswa = Siswa(
+      nisn: nisnController.text,
+      namaLengkap: namaController.text,
+      jenisKelamin: selectedJK ?? "",
+      agama: selectedAgama ?? "",
+      ttl: ttlController.text,
+      telp: telpController.text,
+      nik: nikController.text,
+      jalan: jalanController.text,
+      rtrw: rtrwController.text,
+      dusun: dusunController.text,
+      desa: desaController.text,
+      kecamatan: kecamatanController.text,
+      kabupaten: kabupatenController.text,
+      provinsi: provinsiController.text,
+      kodepos: kodeposController.text,
+      ayah: ayahController.text,
+      ibu: ibuController.text,
+      wali: waliController.text,
+      alamatWali: alamatWaliController.text,
+    );
+
+    try {
+      if (widget.siswaId != null) {
+        await siswaService.update(widget.siswaId!, siswa);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Data berhasil diupdate")),
+        );
+      } else {
+        await siswaService.add(siswa);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Data berhasil disimpan")),
+        );
+      }
       Navigator.pop(context, siswa);
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Terjadi kesalahan: $e")),
+      );
     }
   }
 
+  //=================== BUILD WIDGET ===================
   Widget _buildTextField(String label, TextEditingController controller,
-      {IconData? icon}) {
+      {IconData? icon, String? Function(String?)? validator}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: TextFormField(
@@ -145,8 +216,7 @@ class _FormPageState extends State<FormPage> {
           ),
         ),
         style: GoogleFonts.poppins(),
-        validator: (value) =>
-            value == null || value.isEmpty ? "Wajib diisi" : null,
+        validator: validator ?? (value) => value == null || value.isEmpty ? "Wajib diisi" : null,
       ),
     );
   }
@@ -183,11 +253,7 @@ class _FormPageState extends State<FormPage> {
                   child: Text(jk, style: GoogleFonts.poppins()),
                 ))
             .toList(),
-        onChanged: (value) {
-          setState(() {
-            selectedJK = value;
-          });
-        },
+        onChanged: (value) => setState(() => selectedJK = value),
         decoration: InputDecoration(
           labelText: "Jenis Kelamin",
           labelStyle: GoogleFonts.poppins(),
@@ -205,14 +271,7 @@ class _FormPageState extends State<FormPage> {
   }
 
   Widget _buildDropdownAgama() {
-    final agamaList = [
-      "Islam",
-      "Kristen",
-      "Katolik",
-      "Hindu",
-      "Buddha",
-      "Konghucu"
-    ];
+    final agamaList = ["Islam", "Kristen", "Katolik", "Hindu", "Buddha", "Konghucu"];
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
@@ -224,11 +283,7 @@ class _FormPageState extends State<FormPage> {
                   child: Text(agama, style: GoogleFonts.poppins()),
                 ))
             .toList(),
-        onChanged: (value) {
-          setState(() {
-            selectedAgama = value;
-          });
-        },
+        onChanged: (value) => setState(() => selectedAgama = value),
         decoration: InputDecoration(
           labelText: "Agama",
           labelStyle: GoogleFonts.poppins(),
@@ -249,13 +304,10 @@ class _FormPageState extends State<FormPage> {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Autocomplete<String>(
-        optionsBuilder: (TextEditingValue textEditingValue) {
-          if (textEditingValue.text.isEmpty) {
-            return const Iterable<String>.empty();
-          }
-          return dusunSuggestion.where((dusun) => dusun
-              .toLowerCase()
-              .contains(textEditingValue.text.toLowerCase()));
+        optionsBuilder: (textEditingValue) {
+          if (textEditingValue.text.isEmpty) return const Iterable<String>.empty();
+          return dusunSuggestion.where((dusun) =>
+              dusun.toLowerCase().contains(textEditingValue.text.toLowerCase()));
         },
         fieldViewBuilder: (context, controller, focusNode, onEditingComplete) {
           controller.text = dusunController.text;
@@ -271,8 +323,7 @@ class _FormPageState extends State<FormPage> {
                 borderRadius: BorderRadius.circular(12),
               ),
             ),
-            validator: (value) =>
-                value == null || value.isEmpty ? "Wajib diisi" : null,
+            validator: validateRequired,
             onEditingComplete: onEditingComplete,
           );
         },
@@ -286,6 +337,7 @@ class _FormPageState extends State<FormPage> {
                 kecamatanController.text = alamatData['kecamatan']!;
                 kabupatenController.text = alamatData['kabupaten']!;
                 kodeposController.text = alamatData['kodepos']!;
+                provinsiController.text = alamatData['provinsi']!;
               });
             }
           } catch (e) {
@@ -293,6 +345,40 @@ class _FormPageState extends State<FormPage> {
               SnackBar(content: Text(e.toString())),
             );
           }
+        },
+      ),
+    );
+  }
+
+  Widget _buildProvinsiField() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Autocomplete<String>(
+        optionsBuilder: (textEditingValue) {
+          if (textEditingValue.text.isEmpty) return const Iterable<String>.empty();
+          return provinsiSuggestion.where((prov) =>
+              prov.toLowerCase().contains(textEditingValue.text.toLowerCase()));
+        },
+        fieldViewBuilder: (context, controller, focusNode, onEditingComplete) {
+          controller.text = provinsiController.text;
+          return TextFormField(
+            controller: controller,
+            focusNode: focusNode,
+            decoration: InputDecoration(
+              labelText: "Provinsi",
+              prefixIcon: const Icon(Icons.flag, color: Colors.blue),
+              filled: true,
+              fillColor: Colors.white,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            validator: validateRequired,
+            onEditingComplete: onEditingComplete,
+          );
+        },
+        onSelected: (selection) {
+          provinsiController.text = selection;
         },
       ),
     );
@@ -324,23 +410,23 @@ class _FormPageState extends State<FormPage> {
               key: _formKey,
               child: Column(
                 children: [
-                  _buildTextField("NISN", nisnController, icon: Icons.badge),
-                  _buildTextField("Nama Lengkap", namaController, icon: Icons.person),
+                  _buildTextField("NISN", nisnController, icon: Icons.badge, validator: validateNISN),
+                  _buildTextField("Nama Lengkap", namaController, icon: Icons.person, validator: validateRequired),
                   _buildDropdownJK(),
                   _buildDropdownAgama(),
-                  _buildTextField("Tempat, Tanggal Lahir", ttlController, icon: Icons.cake),
-                  _buildTextField("No Telepon/HP", telpController, icon: Icons.phone),
-                  _buildTextField("NIK", nikController, icon: Icons.perm_identity),
-                  _buildTextField("Jalan", jalanController, icon: Icons.home_filled),
-                  _buildTextField("RT/RW", rtrwController, icon: Icons.map),
+                  _buildTextField("Tempat, Tanggal Lahir", ttlController, icon: Icons.cake, validator: validateRequired),
+                  _buildTextField("No Telepon/HP", telpController, icon: Icons.phone, validator: validateTelp),
+                  _buildTextField("NIK", nikController, icon: Icons.perm_identity, validator: validateNIK),
+                  _buildTextField("Jalan", jalanController, icon: Icons.home_filled, validator: validateRequired),
+                  _buildTextField("RT/RW", rtrwController, icon: Icons.map, validator: validateRTRW),
                   _buildDusunField(),
                   _buildReadonlyField("Desa", desaController, icon: Icons.location_city),
                   _buildReadonlyField("Kecamatan", kecamatanController, icon: Icons.apartment),
                   _buildReadonlyField("Kabupaten", kabupatenController, icon: Icons.location_on),
-                  _buildTextField("Provinsi", provinsiController, icon: Icons.flag),
+                  _buildReadonlyField("Provinsi", provinsiController, icon: Icons.flag),
                   _buildReadonlyField("Kode Pos", kodeposController, icon: Icons.markunread_mailbox),
-                  _buildTextField("Nama Ayah", ayahController, icon: Icons.male),
-                  _buildTextField("Nama Ibu", ibuController, icon: Icons.female),
+                  _buildTextField("Nama Ayah", ayahController, icon: Icons.male, validator: validateRequired),
+                  _buildTextField("Nama Ibu", ibuController, icon: Icons.female, validator: validateRequired),
                   _buildTextField("Nama Wali", waliController, icon: Icons.people),
                   _buildTextField("Alamat Orang Tua/Wali", alamatWaliController, icon: Icons.location_pin),
                   const SizedBox(height: 24),
