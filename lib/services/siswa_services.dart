@@ -66,18 +66,22 @@ class SiswaService {
       final alamatId = alamat['id'];
 
       // Insert siswa
-      final siswaData = await supabase.from('siswa').insert({
-        'nisn': siswa.nisn,
-        'nama_lengkap': siswa.namaLengkap,
-        'jenis_kelamin': siswa.jenisKelamin,
-        'agama': siswa.agama,
-        'ttl': siswa.ttl,
-        'telp': siswa.telp,
-        'nik': siswa.nik,
-        'jalan': siswa.jalan,
-        'rtrw': siswa.rtrw,
-        'alamat_id': alamatId,
-      }).select().single();
+      final siswaData = await supabase
+          .from('siswa')
+          .insert({
+            'nisn': siswa.nisn,
+            'nama_lengkap': siswa.namaLengkap,
+            'jenis_kelamin': siswa.jenisKelamin,
+            'agama': siswa.agama,
+            'ttl': siswa.ttl,
+            'telp': siswa.telp,
+            'nik': siswa.nik,
+            'jalan': siswa.jalan,
+            'rtrw': siswa.rtrw,
+            'alamat_id': alamatId,
+          })
+          .select()
+          .single();
 
       final siswaId = siswaData['id'];
 
@@ -121,18 +125,21 @@ class SiswaService {
       final alamatId = alamat['id'];
 
       // Update siswa
-      await supabase.from('siswa').update({
-        'nisn': siswa.nisn,
-        'nama_lengkap': siswa.namaLengkap,
-        'jenis_kelamin': siswa.jenisKelamin,
-        'agama': siswa.agama,
-        'ttl': siswa.ttl,
-        'telp': siswa.telp,
-        'nik': siswa.nik,
-        'jalan': siswa.jalan,
-        'rtrw': siswa.rtrw,
-        'alamat_id': alamatId,
-      }).eq('id', siswaId);
+      await supabase
+          .from('siswa')
+          .update({
+            'nisn': siswa.nisn,
+            'nama_lengkap': siswa.namaLengkap,
+            'jenis_kelamin': siswa.jenisKelamin,
+            'agama': siswa.agama,
+            'ttl': siswa.ttl,
+            'telp': siswa.telp,
+            'nik': siswa.nik,
+            'jalan': siswa.jalan,
+            'rtrw': siswa.rtrw,
+            'alamat_id': alamatId,
+          })
+          .eq('id', siswaId);
 
       // === Orang tua ===
       final orangTua = await supabase
@@ -142,11 +149,14 @@ class SiswaService {
           .maybeSingle();
 
       if (orangTua != null) {
-        await supabase.from('orang_tua').update({
-          'nama_ayah': siswa.ayah,
-          'nama_ibu': siswa.ibu,
-          'alamat_ortu': siswa.alamatWali,
-        }).eq('siswa_id', siswaId);
+        await supabase
+            .from('orang_tua')
+            .update({
+              'nama_ayah': siswa.ayah,
+              'nama_ibu': siswa.ibu,
+              'alamat_ortu': siswa.alamatWali,
+            })
+            .eq('siswa_id', siswaId);
       } else {
         await supabase.from('orang_tua').insert({
           'siswa_id': siswaId,
@@ -165,10 +175,13 @@ class SiswaService {
 
       if (siswa.wali.isNotEmpty) {
         if (wali != null) {
-          await supabase.from('wali').update({
-            'nama_wali': siswa.wali,
-            'alamat_wali': siswa.alamatWali,
-          }).eq('siswa_id', siswaId);
+          await supabase
+              .from('wali')
+              .update({
+                'nama_wali': siswa.wali,
+                'alamat_wali': siswa.alamatWali,
+              })
+              .eq('siswa_id', siswaId);
         } else {
           await supabase.from('wali').insert({
             'siswa_id': siswaId,

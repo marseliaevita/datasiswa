@@ -15,7 +15,9 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   final siswaService = SiswaService();
   List<Siswa> siswaList = [];
+  List<Siswa> filteredSiswaList = [];
   bool isLoading = true;
+  String searchQuery = "";
 
   @override
   void initState() {
@@ -28,12 +30,26 @@ class _HomePageState extends State<HomePage> {
       final data = await siswaService.getAll();
       setState(() {
         siswaList = data;
+        filteredSiswaList = data; // awalnya tampil semua
         isLoading = false;
       });
     } catch (e) {
       debugPrint("Error: $e");
       setState(() => isLoading = false);
     }
+  }
+
+  void _filterSiswa(String query) {
+    final filtered = siswaList.where((siswa) {
+      final namaLower = siswa.namaLengkap.toLowerCase();
+      final queryLower = query.toLowerCase();
+      return namaLower.contains(queryLower);
+    }).toList();
+
+    setState(() {
+      searchQuery = query;
+      filteredSiswaList = filtered;
+    });
   }
 
   Future<void> _deleteSiswa(String id) async {
@@ -93,7 +109,7 @@ class _HomePageState extends State<HomePage> {
       ),
       body: Column(
         children: [
-          // 🔹 Header dengan background biru
+          // Header dengan background biru
           Container(
             width: double.infinity,
             padding: const EdgeInsets.fromLTRB(20, 40, 20, 24),
@@ -106,8 +122,8 @@ class _HomePageState extends State<HomePage> {
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
-                Text(
+              children: [
+                const Text(
                   "Data Siswa",
                   style: TextStyle(
                     fontSize: 22,
@@ -115,25 +131,40 @@ class _HomePageState extends State<HomePage> {
                     color: Colors.white,
                   ),
                 ),
-                SizedBox(height: 6),
-                Text(
+                const SizedBox(height: 6),
+                const Text(
                   "Kelola informasi siswa dengan mudah",
                   style: TextStyle(
                     fontSize: 14,
                     color: Colors.white70,
                   ),
                 ),
+                const SizedBox(height: 12),
+                // TextField untuk pencarian
+                TextField(
+                  onChanged: _filterSiswa,
+                  decoration: InputDecoration(
+                    hintText: "Cari siswa...",
+                    fillColor: Colors.white,
+                    filled: true,
+                    prefixIcon: const Icon(Icons.search),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
 
-          // 🔹 Isi list data siswa
+          // Isi list data siswa
           Expanded(
             child: isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : RefreshIndicator(
                     onRefresh: fetchData,
-                    child: siswaList.isEmpty
+                    child: filteredSiswaList.isEmpty
                         ? const Center(
                             child: Text(
                               "Belum ada data siswa",
@@ -145,9 +176,9 @@ class _HomePageState extends State<HomePage> {
                           )
                         : ListView.builder(
                             padding: const EdgeInsets.only(top: 12),
-                            itemCount: siswaList.length,
+                            itemCount: filteredSiswaList.length,
                             itemBuilder: (context, index) {
-                              final siswa = siswaList[index];
+                              final siswa = filteredSiswaList[index];
                               return Padding(
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 12, vertical: 6),
@@ -162,8 +193,8 @@ class _HomePageState extends State<HomePage> {
                                     );
                                     if (result == true) fetchData();
                                   },
-                                  onEdit: () => _navigateToForm(
-                                      siswa: siswa, siswaId: siswa.id),
+                                  onEdit: () =>
+                                      _navigateToForm(siswa: siswa, siswaId: siswa.id),
                                   onDelete: () => _deleteSiswa(siswa.id),
                                 ),
                               );
