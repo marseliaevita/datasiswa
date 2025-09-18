@@ -55,7 +55,7 @@ class _FormPageState extends State<FormPage> {
     selectedJK = widget.siswa?.jenisKelamin;
     selectedAgama = widget.siswa?.agama;
 
-    // Pisahkan TTL lama jadi tempat + tanggal
+    // TTL pisah jadi tempat + tanggal
     if (widget.siswa?.ttl != null && widget.siswa!.ttl.contains(",")) {
       final parts = widget.siswa!.ttl.split(",");
       tempatLahirController = TextEditingController(text: parts[0].trim());
@@ -212,7 +212,7 @@ class _FormPageState extends State<FormPage> {
           labelStyle: GoogleFonts.poppins(),
           prefixIcon: icon != null ? Icon(icon, color: Colors.blue) : null,
           filled: true,
-          fillColor: Colors.white,
+          fillColor: Colors.blue[50], // ✅ biru muda
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
         ),
         style: GoogleFonts.poppins(),
@@ -231,10 +231,10 @@ class _FormPageState extends State<FormPage> {
           labelText: label,
           prefixIcon: icon != null ? Icon(icon, color: Colors.grey) : null,
           filled: true,
-          fillColor: Colors.grey[200],
+          fillColor: Colors.blue[100], // ✅ biru lebih terang untuk readonly
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
         ),
-        style: GoogleFonts.poppins(color: Colors.black54),
+        style: GoogleFonts.poppins(color: Colors.black87),
       ),
     );
   }
@@ -253,7 +253,7 @@ class _FormPageState extends State<FormPage> {
           labelStyle: GoogleFonts.poppins(),
           prefixIcon: const Icon(Icons.wc, color: Colors.blue),
           filled: true,
-          fillColor: Colors.white,
+          fillColor: Colors.blue[50],
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
         ),
         validator: (value) => value == null || value.isEmpty ? "Wajib dipilih" : null,
@@ -275,7 +275,7 @@ class _FormPageState extends State<FormPage> {
           labelStyle: GoogleFonts.poppins(),
           prefixIcon: const Icon(Icons.mosque, color: Colors.blue),
           filled: true,
-          fillColor: Colors.white,
+          fillColor: Colors.blue[50],
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
         ),
         validator: (value) => value == null || value.isEmpty ? "Wajib dipilih" : null,
@@ -293,7 +293,7 @@ class _FormPageState extends State<FormPage> {
           labelText: "Tanggal Lahir",
           prefixIcon: const Icon(Icons.calendar_today, color: Colors.blue),
           filled: true,
-          fillColor: Colors.white,
+          fillColor: Colors.blue[50],
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
         ),
         validator: validateRequired,
@@ -333,7 +333,7 @@ class _FormPageState extends State<FormPage> {
               labelText: "Dusun",
               prefixIcon: const Icon(Icons.house, color: Colors.blue),
               filled: true,
-              fillColor: Colors.white,
+              fillColor: Colors.blue[50],
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
             ),
             validator: validateRequired,
@@ -366,7 +366,7 @@ class _FormPageState extends State<FormPage> {
     final isEdit = widget.siswa != null;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F6FA),
+      backgroundColor: Colors.white, 
       appBar: AppBar(
         title: Text(isEdit ? "Edit Siswa" : "Tambah Siswa", style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
         backgroundColor: Colors.blue,
@@ -377,6 +377,7 @@ class _FormPageState extends State<FormPage> {
         padding: const EdgeInsets.all(16),
         child: Card(
           elevation: 4,
+          color: Colors.white,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           child: Padding(
             padding: const EdgeInsets.all(20),
@@ -412,6 +413,7 @@ class _FormPageState extends State<FormPage> {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.blue,
                         foregroundColor: Colors.white,
+                        overlayColor: Colors.blue.shade700,
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         elevation: 3,

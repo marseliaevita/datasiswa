@@ -4,7 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 class SiswaService {
   final supabase = Supabase.instance.client;
 
-  /// Get semua siswa beserta data orang tua & wali
+  /// Get semua siswa beserta data orang tua, wali & alamat
   Future<List<Siswa>> getAll() async {
     try {
       final response = await supabase
@@ -36,7 +36,7 @@ class SiswaService {
           desa: alamatData != null ? alamatData['desa'] ?? '' : '',
           kecamatan: alamatData != null ? alamatData['kecamatan'] ?? '' : '',
           kabupaten: alamatData != null ? alamatData['kabupaten'] ?? '' : '',
-          provinsi: data['provinsi'] ?? '',
+          provinsi: alamatData != null ? alamatData['provinsi'] ?? '' : '',
           kodepos: alamatData != null ? alamatData['kodepos'] ?? '' : '',
           ayah: orangTua != null ? orangTua['nama_ayah'] ?? '' : '',
           ibu: orangTua != null ? orangTua['nama_ibu'] ?? '' : '',
@@ -52,15 +52,17 @@ class SiswaService {
   /// Tambah siswa baru
   Future<void> add(Siswa siswa) async {
     try {
-      // Ambil alamat_id
+      // Cari alamat_id dari tabel alamat
       final alamat = await supabase
           .from('alamat')
           .select('id')
           .eq('dusun', siswa.dusun)
-          .limit(1)
-          .single();
+          .maybeSingle();
 
-      if (alamat == null) throw Exception("Alamat tidak ditemukan");
+      if (alamat == null) {
+        throw Exception("Alamat dengan dusun '${siswa.dusun}' tidak ditemukan");
+      }
+
       final alamatId = alamat['id'];
 
       // Insert siswa
@@ -74,7 +76,6 @@ class SiswaService {
         'nik': siswa.nik,
         'jalan': siswa.jalan,
         'rtrw': siswa.rtrw,
-        'provinsi': siswa.provinsi,
         'alamat_id': alamatId,
       }).select().single();
 
@@ -96,7 +97,9 @@ class SiswaService {
           'alamat_wali': siswa.alamatWali,
         });
       }
-    } catch (e) {
+    } catch (e, stack) {
+      print("Error add siswa: $e");
+      print(stack);
       throw Exception("Gagal tambah data: $e");
     }
   }
@@ -104,15 +107,17 @@ class SiswaService {
   /// Update data siswa
   Future<void> update(String siswaId, Siswa siswa) async {
     try {
-      // Ambil alamat_id
+      // Cari alamat_id dari tabel alamat
       final alamat = await supabase
           .from('alamat')
           .select('id')
           .eq('dusun', siswa.dusun)
-          .limit(1)
-          .single();
+          .maybeSingle();
 
-      if (alamat == null) throw Exception("Alamat tidak ditemukan");
+      if (alamat == null) {
+        throw Exception("Alamat dengan dusun '${siswa.dusun}' tidak ditemukan");
+      }
+
       final alamatId = alamat['id'];
 
       // Update siswa
@@ -126,7 +131,6 @@ class SiswaService {
         'nik': siswa.nik,
         'jalan': siswa.jalan,
         'rtrw': siswa.rtrw,
-        'provinsi': siswa.provinsi,
         'alamat_id': alamatId,
       }).eq('id', siswaId);
 
@@ -173,12 +177,14 @@ class SiswaService {
           });
         }
       } else {
-        // Hapus wali kalau dikosongkan
+        // Hapus wali kalau kosong
         if (wali != null) {
           await supabase.from('wali').delete().eq('siswa_id', siswaId);
         }
       }
-    } catch (e) {
+    } catch (e, stack) {
+      print("Error update siswa: $e");
+      print(stack);
       throw Exception("Gagal update data: $e");
     }
   }
@@ -189,7 +195,9 @@ class SiswaService {
       await supabase.from('wali').delete().eq('siswa_id', siswaId);
       await supabase.from('orang_tua').delete().eq('siswa_id', siswaId);
       await supabase.from('siswa').delete().eq('id', siswaId);
-    } catch (e) {
+    } catch (e, stack) {
+      print("Error delete siswa: $e");
+      print(stack);
       throw Exception("Gagal hapus data: $e");
     }
   }

@@ -9,12 +9,21 @@ class DetailPage extends StatelessWidget {
 
   Widget _buildInfoTile(String title, String value, IconData icon) {
     return Card(
-      margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
+      elevation: 2,
+      margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 16),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: ListTile(
-        leading: Icon(icon, color: Colors.blue.shade600),
+        leading: CircleAvatar(
+          backgroundColor: Colors.blue.shade50,
+          child: Icon(icon, color: Colors.blue.shade600),
+        ),
         title: Text(
           title,
-          style: GoogleFonts.poppins(fontWeight: FontWeight.w600, fontSize: 14),
+          style: GoogleFonts.poppins(
+            fontWeight: FontWeight.w600,
+            fontSize: 14,
+            color: Colors.black87,
+          ),
         ),
         subtitle: Text(
           value.isNotEmpty ? value : "-",
@@ -27,12 +36,18 @@ class DetailPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
         title: Text(
           "Detail Siswa",
-          style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
+          style: GoogleFonts.poppins(
+            fontWeight: FontWeight.bold,
+            color: Colors.white, // judul putih
+          ),
         ),
         backgroundColor: Colors.blue.shade600,
+        elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: SingleChildScrollView(
         child: Column(
@@ -75,7 +90,10 @@ class DetailPage extends StatelessWidget {
                   ),
                   Text(
                     "NISN: ${siswa.nisn}",
-                    style: GoogleFonts.poppins(fontSize: 14, color: Colors.white70),
+                    style: GoogleFonts.poppins(
+                      fontSize: 14,
+                      color: Colors.white70,
+                    ),
                   ),
                 ],
               ),
@@ -89,19 +107,26 @@ class DetailPage extends StatelessWidget {
             _buildInfoTile("TTL", siswa.ttl, Icons.cake),
             _buildInfoTile("No HP", siswa.telp, Icons.phone),
             _buildInfoTile("NIK", siswa.nik, Icons.badge),
-            _buildInfoTile("Alamat", "${siswa.jalan}, RT/RW ${siswa.rtrw}, ${siswa.dusun}, ${siswa.desa}, ${siswa.kecamatan}, ${siswa.kabupaten}, ${siswa.provinsi} - ${siswa.kodepos}", Icons.home),
+            _buildInfoTile(
+              "Alamat",
+              "${siswa.jalan}, RT/RW ${siswa.rtrw}, ${siswa.dusun}, ${siswa.desa}, ${siswa.kecamatan}, ${siswa.kabupaten}, ${siswa.provinsi} - ${siswa.kodepos}",
+              Icons.home,
+            ),
 
-            const Divider(thickness: 1, indent: 16, endIndent: 16),
+            const SizedBox(height: 12),
+            Divider(thickness: 1, indent: 24, endIndent: 24, color: Colors.grey.shade300),
 
             // Info orang tua
             _buildInfoTile("Ayah", siswa.ayah, Icons.man),
             _buildInfoTile("Ibu", siswa.ibu, Icons.woman),
 
-            const Divider(thickness: 1, indent: 16, endIndent: 16),
+            const SizedBox(height: 12),
+            Divider(thickness: 1, indent: 24, endIndent: 24, color: Colors.grey.shade300),
 
             // Info wali
             _buildInfoTile("Wali", siswa.wali, Icons.person),
             _buildInfoTile("Alamat Wali", siswa.alamatWali, Icons.location_on),
+            const SizedBox(height: 20),
           ],
         ),
       ),

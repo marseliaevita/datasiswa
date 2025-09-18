@@ -48,9 +48,7 @@ class _HomePageState extends State<HomePage> {
             child: const Text("Batal"),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-            ),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () => Navigator.of(ctx).pop(true),
             child: const Text("Hapus"),
           ),
@@ -87,38 +85,99 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Data Siswa")),
-      body: isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : RefreshIndicator(
-              onRefresh: fetchData,
-              child: siswaList.isEmpty
-                  ? const Center(child: Text("Belum ada data siswa"))
-                  : ListView.builder(
-                      itemCount: siswaList.length,
-                      itemBuilder: (context, index) {
-                        final siswa = siswaList[index];
-                        return SiswaCard(
-                          siswa: siswa,
-                          onTap: () async {
-                            final result = await Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => DetailPage(siswa: siswa),
-                              ),
-                            );
-                            if (result == true) fetchData(); // refresh kalau ada hapus/edit
-                          },
-                          onEdit: () => _navigateToForm(
-                              siswa: siswa, siswaId: siswa.id),
-                          onDelete: () => _deleteSiswa(siswa.id),
-                        );
-                      },
-                    ),
+      // AppBar transparan biar nyatu sama header biru
+      appBar: AppBar(
+        backgroundColor: Colors.blue.shade700,
+        elevation: 0,
+        toolbarHeight: 0,
+      ),
+      body: Column(
+        children: [
+          // 🔹 Header dengan background biru
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.fromLTRB(20, 40, 20, 24),
+            decoration: BoxDecoration(
+              color: Colors.blue.shade700,
+              borderRadius: const BorderRadius.only(
+                bottomLeft: Radius.circular(24),
+                bottomRight: Radius.circular(24),
+              ),
             ),
-      floatingActionButton: FloatingActionButton(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: const [
+                Text(
+                  "Data Siswa",
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+                SizedBox(height: 6),
+                Text(
+                  "Kelola informasi siswa dengan mudah",
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.white70,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // 🔹 Isi list data siswa
+          Expanded(
+            child: isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : RefreshIndicator(
+                    onRefresh: fetchData,
+                    child: siswaList.isEmpty
+                        ? const Center(
+                            child: Text(
+                              "Belum ada data siswa",
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: Colors.black54,
+                              ),
+                            ),
+                          )
+                        : ListView.builder(
+                            padding: const EdgeInsets.only(top: 12),
+                            itemCount: siswaList.length,
+                            itemBuilder: (context, index) {
+                              final siswa = siswaList[index];
+                              return Padding(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 12, vertical: 6),
+                                child: SiswaCard(
+                                  siswa: siswa,
+                                  onTap: () async {
+                                    final result = await Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => DetailPage(siswa: siswa),
+                                      ),
+                                    );
+                                    if (result == true) fetchData();
+                                  },
+                                  onEdit: () => _navigateToForm(
+                                      siswa: siswa, siswaId: siswa.id),
+                                  onDelete: () => _deleteSiswa(siswa.id),
+                                ),
+                              );
+                            },
+                          ),
+                  ),
+          ),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        backgroundColor: Colors.blue.shade700,
         onPressed: () => _navigateToForm(),
-        child: const Icon(Icons.add),
+        icon: const Icon(Icons.add),
+        label: const Text("Tambah"),
       ),
     );
   }
