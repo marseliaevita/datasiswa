@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
 import 'package:datasiswa/models/siswa.dart';
 import 'package:datasiswa/services/alamat_services.dart';
 import 'package:datasiswa/services/siswa_services.dart';
@@ -22,7 +23,8 @@ class _FormPageState extends State<FormPage> {
   // Controllers
   late TextEditingController nisnController;
   late TextEditingController namaController;
-  late TextEditingController ttlController;
+  late TextEditingController tempatLahirController;
+  late TextEditingController tanggalLahirController;
   late TextEditingController telpController;
   late TextEditingController nikController;
   late TextEditingController jalanController;
@@ -48,12 +50,21 @@ class _FormPageState extends State<FormPage> {
   void initState() {
     super.initState();
 
-    // Inisialisasi controller dengan data lama jika edit
     nisnController = TextEditingController(text: widget.siswa?.nisn ?? "");
     namaController = TextEditingController(text: widget.siswa?.namaLengkap ?? "");
     selectedJK = widget.siswa?.jenisKelamin;
     selectedAgama = widget.siswa?.agama;
-    ttlController = TextEditingController(text: widget.siswa?.ttl ?? "");
+
+    // Pisahkan TTL lama jadi tempat + tanggal
+    if (widget.siswa?.ttl != null && widget.siswa!.ttl.contains(",")) {
+      final parts = widget.siswa!.ttl.split(",");
+      tempatLahirController = TextEditingController(text: parts[0].trim());
+      tanggalLahirController = TextEditingController(text: parts[1].trim());
+    } else {
+      tempatLahirController = TextEditingController();
+      tanggalLahirController = TextEditingController();
+    }
+
     telpController = TextEditingController(text: widget.siswa?.telp ?? "");
     nikController = TextEditingController(text: widget.siswa?.nik ?? "");
     jalanController = TextEditingController(text: widget.siswa?.jalan ?? "");
@@ -69,33 +80,25 @@ class _FormPageState extends State<FormPage> {
     waliController = TextEditingController(text: widget.siswa?.wali ?? "");
     alamatWaliController = TextEditingController(text: widget.siswa?.alamatWali ?? "");
 
-    _loadDusun(); // Load dusun untuk autocomplete
-    _loadProvinsi(); // Load provinsi untuk autocomplete
+    _loadDusun();
+    _loadProvinsi();
   }
 
   void _loadDusun() async {
     try {
       final list = await alamatService.getDusunList();
-      setState(() {
-        dusunSuggestion = list;
-      });
+      setState(() => dusunSuggestion = list);
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString())),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
     }
   }
 
   void _loadProvinsi() async {
     try {
       final list = await alamatService.getProvinsiList();
-      setState(() {
-        provinsiSuggestion = list;
-      });
+      setState(() => provinsiSuggestion = list);
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString())),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
     }
   }
 
@@ -103,7 +106,8 @@ class _FormPageState extends State<FormPage> {
   void dispose() {
     nisnController.dispose();
     namaController.dispose();
-    ttlController.dispose();
+    tempatLahirController.dispose();
+    tanggalLahirController.dispose();
     telpController.dispose();
     nikController.dispose();
     jalanController.dispose();
@@ -161,7 +165,7 @@ class _FormPageState extends State<FormPage> {
       namaLengkap: namaController.text,
       jenisKelamin: selectedJK ?? "",
       agama: selectedAgama ?? "",
-      ttl: ttlController.text,
+      ttl: "${tempatLahirController.text}, ${tanggalLahirController.text}",
       telp: telpController.text,
       nik: nikController.text,
       jalan: jalanController.text,
@@ -181,26 +185,24 @@ class _FormPageState extends State<FormPage> {
     try {
       if (widget.siswaId != null) {
         await siswaService.update(widget.siswaId!, siswa);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Data berhasil diupdate")),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Data berhasil diupdate")));
       } else {
         await siswaService.add(siswa);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Data berhasil disimpan")),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Data berhasil disimpan")));
       }
       Navigator.pop(context, siswa);
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Terjadi kesalahan: $e")),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Terjadi kesalahan: $e")));
     }
   }
 
   //=================== BUILD WIDGET ===================
-  Widget _buildTextField(String label, TextEditingController controller,
-      {IconData? icon, String? Function(String?)? validator}) {
+  Widget _buildTextField(
+    String label,
+    TextEditingController controller, {
+    IconData? icon,
+    String? Function(String?)? validator,
+  }) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: TextFormField(
@@ -211,9 +213,7 @@ class _FormPageState extends State<FormPage> {
           prefixIcon: icon != null ? Icon(icon, color: Colors.blue) : null,
           filled: true,
           fillColor: Colors.white,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
         ),
         style: GoogleFonts.poppins(),
         validator: validator ?? (value) => value == null || value.isEmpty ? "Wajib diisi" : null,
@@ -221,8 +221,7 @@ class _FormPageState extends State<FormPage> {
     );
   }
 
-  Widget _buildReadonlyField(String label, TextEditingController controller,
-      {IconData? icon}) {
+  Widget _buildReadonlyField(String label, TextEditingController controller, {IconData? icon}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: TextFormField(
@@ -233,9 +232,7 @@ class _FormPageState extends State<FormPage> {
           prefixIcon: icon != null ? Icon(icon, color: Colors.grey) : null,
           filled: true,
           fillColor: Colors.grey[200],
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
         ),
         style: GoogleFonts.poppins(color: Colors.black54),
       ),
@@ -248,10 +245,7 @@ class _FormPageState extends State<FormPage> {
       child: DropdownButtonFormField<String>(
         value: selectedJK,
         items: ["Laki-laki", "Perempuan"]
-            .map((jk) => DropdownMenuItem(
-                  value: jk,
-                  child: Text(jk, style: GoogleFonts.poppins()),
-                ))
+            .map((jk) => DropdownMenuItem(value: jk, child: Text(jk, style: GoogleFonts.poppins())))
             .toList(),
         onChanged: (value) => setState(() => selectedJK = value),
         decoration: InputDecoration(
@@ -260,12 +254,9 @@ class _FormPageState extends State<FormPage> {
           prefixIcon: const Icon(Icons.wc, color: Colors.blue),
           filled: true,
           fillColor: Colors.white,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
         ),
-        validator: (value) =>
-            value == null || value.isEmpty ? "Wajib dipilih" : null,
+        validator: (value) => value == null || value.isEmpty ? "Wajib dipilih" : null,
       ),
     );
   }
@@ -277,12 +268,7 @@ class _FormPageState extends State<FormPage> {
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: DropdownButtonFormField<String>(
         value: selectedAgama,
-        items: agamaList
-            .map((agama) => DropdownMenuItem(
-                  value: agama,
-                  child: Text(agama, style: GoogleFonts.poppins()),
-                ))
-            .toList(),
+        items: agamaList.map((agama) => DropdownMenuItem(value: agama, child: Text(agama, style: GoogleFonts.poppins()))).toList(),
         onChanged: (value) => setState(() => selectedAgama = value),
         decoration: InputDecoration(
           labelText: "Agama",
@@ -290,12 +276,40 @@ class _FormPageState extends State<FormPage> {
           prefixIcon: const Icon(Icons.mosque, color: Colors.blue),
           filled: true,
           fillColor: Colors.white,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
         ),
-        validator: (value) =>
-            value == null || value.isEmpty ? "Wajib dipilih" : null,
+        validator: (value) => value == null || value.isEmpty ? "Wajib dipilih" : null,
+      ),
+    );
+  }
+
+  Widget _buildTanggalField() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: TextFormField(
+        controller: tanggalLahirController,
+        readOnly: true,
+        decoration: InputDecoration(
+          labelText: "Tanggal Lahir",
+          prefixIcon: const Icon(Icons.calendar_today, color: Colors.blue),
+          filled: true,
+          fillColor: Colors.white,
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+        validator: validateRequired,
+        onTap: () async {
+          DateTime? picked = await showDatePicker(
+            context: context,
+            initialDate: DateTime(2005),
+            firstDate: DateTime(1980),
+            lastDate: DateTime.now(),
+          );
+          if (picked != null) {
+            setState(() {
+              tanggalLahirController.text = DateFormat('dd-MM-yyyy').format(picked);
+            });
+          }
+        },
       ),
     );
   }
@@ -306,8 +320,9 @@ class _FormPageState extends State<FormPage> {
       child: Autocomplete<String>(
         optionsBuilder: (textEditingValue) {
           if (textEditingValue.text.isEmpty) return const Iterable<String>.empty();
-          return dusunSuggestion.where((dusun) =>
-              dusun.toLowerCase().contains(textEditingValue.text.toLowerCase()));
+          return dusunSuggestion.where(
+            (dusun) => dusun.toLowerCase().contains(textEditingValue.text.toLowerCase()),
+          );
         },
         fieldViewBuilder: (context, controller, focusNode, onEditingComplete) {
           controller.text = dusunController.text;
@@ -319,9 +334,7 @@ class _FormPageState extends State<FormPage> {
               prefixIcon: const Icon(Icons.house, color: Colors.blue),
               filled: true,
               fillColor: Colors.white,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
             ),
             validator: validateRequired,
             onEditingComplete: onEditingComplete,
@@ -341,44 +354,8 @@ class _FormPageState extends State<FormPage> {
               });
             }
           } catch (e) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(e.toString())),
-            );
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
           }
-        },
-      ),
-    );
-  }
-
-  Widget _buildProvinsiField() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Autocomplete<String>(
-        optionsBuilder: (textEditingValue) {
-          if (textEditingValue.text.isEmpty) return const Iterable<String>.empty();
-          return provinsiSuggestion.where((prov) =>
-              prov.toLowerCase().contains(textEditingValue.text.toLowerCase()));
-        },
-        fieldViewBuilder: (context, controller, focusNode, onEditingComplete) {
-          controller.text = provinsiController.text;
-          return TextFormField(
-            controller: controller,
-            focusNode: focusNode,
-            decoration: InputDecoration(
-              labelText: "Provinsi",
-              prefixIcon: const Icon(Icons.flag, color: Colors.blue),
-              filled: true,
-              fillColor: Colors.white,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-            validator: validateRequired,
-            onEditingComplete: onEditingComplete,
-          );
-        },
-        onSelected: (selection) {
-          provinsiController.text = selection;
         },
       ),
     );
@@ -391,10 +368,7 @@ class _FormPageState extends State<FormPage> {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F6FA),
       appBar: AppBar(
-        title: Text(
-          isEdit ? "Edit Siswa" : "Tambah Siswa",
-          style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
-        ),
+        title: Text(isEdit ? "Edit Siswa" : "Tambah Siswa", style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
         backgroundColor: Colors.blue,
         foregroundColor: Colors.white,
         elevation: 0,
@@ -414,7 +388,8 @@ class _FormPageState extends State<FormPage> {
                   _buildTextField("Nama Lengkap", namaController, icon: Icons.person, validator: validateRequired),
                   _buildDropdownJK(),
                   _buildDropdownAgama(),
-                  _buildTextField("Tempat, Tanggal Lahir", ttlController, icon: Icons.cake, validator: validateRequired),
+                  _buildTextField("Tempat Lahir", tempatLahirController, icon: Icons.location_on, validator: validateRequired),
+                  _buildTanggalField(),
                   _buildTextField("No Telepon/HP", telpController, icon: Icons.phone, validator: validateTelp),
                   _buildTextField("NIK", nikController, icon: Icons.perm_identity, validator: validateNIK),
                   _buildTextField("Jalan", jalanController, icon: Icons.home_filled, validator: validateRequired),
@@ -438,16 +413,11 @@ class _FormPageState extends State<FormPage> {
                         backgroundColor: Colors.blue,
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         elevation: 3,
                       ),
                       icon: const Icon(Icons.save),
-                      label: Text(
-                        isEdit ? "Update" : "Simpan",
-                        style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600),
-                      ),
+                      label: Text(isEdit ? "Update" : "Simpan", style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600)),
                     ),
                   ),
                 ],

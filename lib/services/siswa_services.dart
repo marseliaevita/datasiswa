@@ -10,6 +10,7 @@ class SiswaService {
       final response = await supabase
           .from('siswa')
           .select('*, orang_tua(*), wali(*), alamat(*)');
+
       final dataList = response as List<dynamic>;
 
       return dataList.map((data) {
@@ -51,7 +52,7 @@ class SiswaService {
   /// Tambah siswa baru
   Future<void> add(Siswa siswa) async {
     try {
-      // Ambil alamat_id dari tabel alamat
+      // Ambil alamat_id
       final alamat = await supabase
           .from('alamat')
           .select('id')
@@ -129,24 +130,53 @@ class SiswaService {
         'alamat_id': alamatId,
       }).eq('id', siswaId);
 
-      // Update/insert orang_tua
-      await supabase.from('orang_tua').upsert({
-        'siswa_id': siswaId,
-        'nama_ayah': siswa.ayah,
-        'nama_ibu': siswa.ibu,
-        'alamat_ortu': siswa.alamatWali,
-      }, onConflict: 'siswa_id');
+      // === Orang tua ===
+      final orangTua = await supabase
+          .from('orang_tua')
+          .select('id')
+          .eq('siswa_id', siswaId)
+          .maybeSingle();
 
-      // Update/insert wali
-      if (siswa.wali.isNotEmpty) {
-        await supabase.from('wali').upsert({
-          'siswa_id': siswaId,
-          'nama_wali': siswa.wali,
-          'alamat_wali': siswa.alamatWali,
-        }, onConflict: 'siswa_id');
+      if (orangTua != null) {
+        await supabase.from('orang_tua').update({
+          'nama_ayah': siswa.ayah,
+          'nama_ibu': siswa.ibu,
+          'alamat_ortu': siswa.alamatWali,
+        }).eq('siswa_id', siswaId);
       } else {
-        // Hapus data wali jika dikosongkan
-        await supabase.from('wali').delete().eq('siswa_id', siswaId);
+        await supabase.from('orang_tua').insert({
+          'siswa_id': siswaId,
+          'nama_ayah': siswa.ayah,
+          'nama_ibu': siswa.ibu,
+          'alamat_ortu': siswa.alamatWali,
+        });
+      }
+
+      // === Wali ===
+      final wali = await supabase
+          .from('wali')
+          .select('id')
+          .eq('siswa_id', siswaId)
+          .maybeSingle();
+
+      if (siswa.wali.isNotEmpty) {
+        if (wali != null) {
+          await supabase.from('wali').update({
+            'nama_wali': siswa.wali,
+            'alamat_wali': siswa.alamatWali,
+          }).eq('siswa_id', siswaId);
+        } else {
+          await supabase.from('wali').insert({
+            'siswa_id': siswaId,
+            'nama_wali': siswa.wali,
+            'alamat_wali': siswa.alamatWali,
+          });
+        }
+      } else {
+        // Hapus wali kalau dikosongkan
+        if (wali != null) {
+          await supabase.from('wali').delete().eq('siswa_id', siswaId);
+        }
       }
     } catch (e) {
       throw Exception("Gagal update data: $e");

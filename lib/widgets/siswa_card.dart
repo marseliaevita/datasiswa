@@ -1,78 +1,51 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:datasiswa/models/siswa.dart';
 
 class SiswaCard extends StatelessWidget {
   final Siswa siswa;
-  final VoidCallback onEdit;
-  final VoidCallback onDelete;
+  final VoidCallback? onEdit;
+  final VoidCallback? onDelete;
+  final VoidCallback? onTap; 
 
   const SiswaCard({
     super.key,
     required this.siswa,
-    required this.onEdit,
-    required this.onDelete,
+    this.onEdit,
+    this.onDelete,
+    this.onTap, 
   });
 
   @override
   Widget build(BuildContext context) {
     return Card(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
-      elevation: 5,
-      margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+      margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
+      child: ListTile(
+        onTap: onTap, // ✅ biar bisa dipakai di HomePage
+        leading: CircleAvatar(
+          backgroundColor: Colors.blue,
+          child: Text(
+            siswa.namaLengkap.isNotEmpty
+                ? siswa.namaLengkap[0].toUpperCase()
+                : "?",
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+        title: Text(siswa.namaLengkap),
+        subtitle: Text("NISN: ${siswa.nisn}\nHP: ${siswa.telp}"),
+        isThreeLine: true,
+        trailing: Wrap(
+          spacing: 8,
           children: [
-            // Avatar bulat dengan icon
-            CircleAvatar(
-              radius: 28,
-              backgroundColor: Colors.blue.shade100,
-              child: const Icon(Icons.person, size: 30, color: Colors.blue),
+            IconButton(
+              icon: const Icon(Icons.edit, color: Colors.orange),
+              onPressed: onEdit,
             ),
-            const SizedBox(width: 12),
-            
-            // Info siswa
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    siswa.namaLengkap,
-                    style: GoogleFonts.poppins(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.black87,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    "NISN: ${siswa.nisn}",
-                    style: GoogleFonts.poppins(fontSize: 14, color: Colors.grey[700]),
-                  ),
-                  Text(
-                    "No HP: ${siswa.telp}",
-                    style: GoogleFonts.poppins(fontSize: 14, color: Colors.grey[700]),
-                  ),
-                ],
-              ),
-            ),
-
-            // Tombol Edit & Delete
-            Column(
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.edit, color: Colors.orange),
-                  onPressed: onEdit,
-                ),
-                IconButton(
-                  icon: const Icon(Icons.delete, color: Colors.red),
-                  onPressed: onDelete,
-                ),
-              ],
+            IconButton(
+              icon: const Icon(Icons.delete, color: Colors.red),
+              onPressed: onDelete,
             ),
           ],
         ),
