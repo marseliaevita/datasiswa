@@ -158,43 +158,49 @@ class _FormPageState extends State<FormPage> {
 
   //=================== SAVE DATA ===================
   Future<void> _saveData() async {
-    if (!_formKey.currentState!.validate()) return;
+  if (!_formKey.currentState!.validate()) return;
 
-    final siswa = Siswa(
-      nisn: nisnController.text,
-      namaLengkap: namaController.text,
-      jenisKelamin: selectedJK ?? "",
-      agama: selectedAgama ?? "",
-      ttl: "${tempatLahirController.text}, ${tanggalLahirController.text}",
-      telp: telpController.text,
-      nik: nikController.text,
-      jalan: jalanController.text,
-      rtrw: rtrwController.text,
-      dusun: dusunController.text,
-      desa: desaController.text,
-      kecamatan: kecamatanController.text,
-      kabupaten: kabupatenController.text,
-      provinsi: provinsiController.text,
-      kodepos: kodeposController.text,
-      ayah: ayahController.text,
-      ibu: ibuController.text,
-      wali: waliController.text,
-      alamatWali: alamatWaliController.text,
-    );
+  final siswa = Siswa(
+    id: widget.siswa?.id ?? '', 
+    nisn: nisnController.text,
+    namaLengkap: namaController.text,
+    jenisKelamin: selectedJK ?? "",
+    agama: selectedAgama ?? "",
+    ttl: "${tempatLahirController.text}, ${tanggalLahirController.text}",
+    telp: telpController.text,
+    nik: nikController.text,
+    jalan: jalanController.text,
+    rtrw: rtrwController.text,
+    dusun: dusunController.text,
+    desa: desaController.text,
+    kecamatan: kecamatanController.text,
+    kabupaten: kabupatenController.text,
+    provinsi: provinsiController.text,
+    kodepos: kodeposController.text,
+    ayah: ayahController.text,
+    ibu: ibuController.text,
+    wali: waliController.text,
+    alamatWali: alamatWaliController.text,
+  );
 
-    try {
-      if (widget.siswaId != null) {
-        await siswaService.update(widget.siswaId!, siswa);
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Data berhasil diupdate")));
-      } else {
-        await siswaService.add(siswa);
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Data berhasil disimpan")));
-      }
-      Navigator.pop(context, siswa);
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Terjadi kesalahan: $e")));
+  try {
+    if (widget.siswaId != null) {
+      await siswaService.update(widget.siswaId!, siswa);
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text("Data berhasil diupdate")));
+      Navigator.pop(context, {'action': 'update', 'siswa': siswa});
+    } else {
+      await siswaService.add(siswa);
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text("Data berhasil disimpan")));
+      Navigator.pop(context, {'action': 'add', 'siswa': siswa});
     }
+  } catch (e) {
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text("Terjadi kesalahan: $e")));
   }
+}
+
 
   //=================== BUILD WIDGET ===================
   Widget _buildTextField(

@@ -30,7 +30,7 @@ class _HomePageState extends State<HomePage> {
       final data = await siswaService.getAll();
       setState(() {
         siswaList = data;
-        filteredSiswaList = data; // awalnya tampil semua
+        filteredSiswaList = data;
         isLoading = false;
       });
     } catch (e) {
@@ -75,7 +75,10 @@ class _HomePageState extends State<HomePage> {
     if (confirm == true) {
       try {
         await siswaService.deleteById(id);
-        fetchData();
+        setState(() {
+          siswaList.removeWhere((s) => s.id == id);
+          _filterSiswa(searchQuery);
+        });
 
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("Data berhasil dihapus")),
@@ -95,13 +98,26 @@ class _HomePageState extends State<HomePage> {
         builder: (_) => FormPage(siswa: siswa, siswaId: siswaId),
       ),
     );
-    if (result == true) fetchData();
+
+    if (result != null && result is Map) {
+      final action = result['action'];
+      final Siswa updatedSiswa = result['siswa'];
+
+      setState(() {
+        if (action == 'add') {
+          siswaList.add(updatedSiswa);
+        } else if (action == 'update') {
+          final index = siswaList.indexWhere((s) => s.id == updatedSiswa.id);
+          if (index != -1) siswaList[index] = updatedSiswa;
+        }
+        _filterSiswa(searchQuery);
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // AppBar transparan biar nyatu sama header biru
       appBar: AppBar(
         backgroundColor: Colors.blue.shade700,
         elevation: 0,
@@ -109,7 +125,6 @@ class _HomePageState extends State<HomePage> {
       ),
       body: Column(
         children: [
-          // Header dengan background biru
           Container(
             width: double.infinity,
             padding: const EdgeInsets.fromLTRB(20, 40, 20, 24),
@@ -140,7 +155,6 @@ class _HomePageState extends State<HomePage> {
                   ),
                 ),
                 const SizedBox(height: 12),
-                // TextField untuk pencarian
                 TextField(
                   onChanged: _filterSiswa,
                   decoration: InputDecoration(
@@ -157,8 +171,6 @@ class _HomePageState extends State<HomePage> {
               ],
             ),
           ),
-
-          // Isi list data siswa
           Expanded(
             child: isLoading
                 ? const Center(child: CircularProgressIndicator())
@@ -168,10 +180,7 @@ class _HomePageState extends State<HomePage> {
                         ? const Center(
                             child: Text(
                               "Belum ada data siswa",
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: Colors.black54,
-                              ),
+                              style: TextStyle(fontSize: 16, color: Colors.black54),
                             ),
                           )
                         : ListView.builder(
@@ -180,8 +189,8 @@ class _HomePageState extends State<HomePage> {
                             itemBuilder: (context, index) {
                               final siswa = filteredSiswaList[index];
                               return Padding(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 12, vertical: 6),
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                                 child: SiswaCard(
                                   siswa: siswa,
                                   onTap: () async {
